@@ -1,0 +1,14 @@
+node_modules
+.next
+.data
+.env.local
+*.tsbuildinfo
+next-env.d.ts
+
+# Agentul Publine: configurația și starea locală a fiecărui calculator
+agent/config.json
+agent/sent.json
+agent/agent.log*
+
+# Configurații locale ale editorului / Claude
+.claude/

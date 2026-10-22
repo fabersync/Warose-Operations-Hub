@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  --color-canvas: #f6f5f2;
+  --color-surface: #ffffff;
+  --color-line: #e8e5df;
+  --color-line-strong: #d9d4cb;
+  --color-ink: #1d1b18;
+  --color-ink-2: #45413b;
+  --color-muted: #7c766d;
+  --color-faint: #a8a198;
+
+  --color-crust: #8a5a2e;
+  --color-crust-strong: #6f4622;
+  --color-crust-soft: #f5ede3;
+
+  --color-good: #2e7a57;
+  --color-good-soft: #e8f3ed;
+  --color-bad: #b1453a;
+  --color-bad-soft: #f8e9e7;
+  --color-warn: #a66a12;
+  --color-warn-soft: #fbf1df;
+  --color-info: #3c5f8a;
+  --color-info-soft: #e9eff7;
+
+  --shadow-card: 0 1px 2px rgb(29 27 24 / 0.04), 0 1px 1px rgb(29 27 24 / 0.02);
+}
+
+html, body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "cv11", "ss01", "tnum";
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl border border-line bg-surface shadow-[var(--shadow-card)];
+  }
+  .card-pad { @apply p-5 sm:p-6; }
+  .eyebrow { @apply text-[11px] font-semibold uppercase tracking-[0.08em] text-muted; }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3.5 py-2 text-sm font-medium transition-colors
+      disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-crust;
+  }
+  .btn-primary { @apply bg-ink text-white hover:bg-ink-2; }
+  .btn-accent { @apply bg-crust text-white hover:bg-crust-strong; }
+  .btn-ghost { @apply border border-line bg-surface text-ink hover:bg-canvas; }
+  .btn-danger { @apply border border-bad/30 bg-surface text-bad hover:bg-bad-soft; }
+
+  .field { @apply flex flex-col gap-1.5; }
+  .label { @apply text-xs font-medium text-ink-2; }
+  .input {
+    @apply w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm text-ink placeholder:text-faint
+      focus:border-crust focus:outline-none focus:ring-3 focus:ring-crust/15;
+  }
+
+  .table { @apply w-full text-sm; }
+  .table th { @apply whitespace-nowrap border-b border-line px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-muted; }
+  .table td { @apply border-b border-line/70 px-4 py-3 align-middle text-ink-2; }
+  .table tbody tr:last-child td { @apply border-b-0; }
+  .table tbody tr:hover td { @apply bg-canvas/60; }
+  .num { @apply text-right tabular-nums; }
+}

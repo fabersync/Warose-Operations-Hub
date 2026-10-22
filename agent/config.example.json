@@ -1,0 +1,11 @@
+{
+  "ServerUrl": "https://hub.warose.ro",
+  "Token": "wrs_... (doar pentru teste; instalarea o înlocuiește cu TokenProtected, criptată)",
+  "Sources": [
+    { "Type": "publine", "Folder": "D:\\Exporturi Publine", "Patterns": ["*.xls", "*.xlsx", "*.csv"], "Recursive": false },
+    { "Type": "efactura", "Folder": "C:\\SAGA C.3.0\\e-Factura\\DAVID_WAROSE_SRL", "SubfolderFilter": "FacturiPrimite", "SinceDate": "2026-10-01" }
+  ],
+  "MinFileAgeSeconds": 60,
+  "KeepSentDays": 90,
+  "LogRetentionDays": 30
+}

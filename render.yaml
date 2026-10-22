@@ -1,0 +1,43 @@
+# Blueprint Render: aplicația web + PostgreSQL administrat, ambele în Frankfurt (UE).
+# Render → New → Blueprint → selectați depozitul GitHub. Verificați planurile și prețurile la creare.
+services:
+  - type: web
+    name: warose-hub
+    runtime: docker
+    region: frankfurt
+    plan: starter
+    numInstances: 1            # o singură instanță: planificatorul intern de alerte rulează o dată
+    healthCheckPath: /api/health
+    disk:
+      name: warose-files       # fișierele originale importate (exporturi Publine, facturi, PDF-uri)
+      mountPath: /var/data
+      sizeGB: 5
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: warose-db
+          property: connectionString
+      - key: AUTH_SECRET
+        generateValue: true
+      - key: CRON_SECRET
+        generateValue: true
+      - key: FILE_STORAGE_DIR
+        value: /var/data/files
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: APP_URL
+        sync: false
+      - key: SMTP_URL
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+
+databases:
+  - name: warose-db
+    region: frankfurt
+    plan: basic-256mb
+    databaseName: warose
+    user: warose
+    postgresMajorVersion: "16"

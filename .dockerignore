@@ -1,0 +1,9 @@
+node_modules
+.next
+.data
+.env*
+!.env.example
+agent/config.json
+agent/sent.json
+agent/agent.log
+*.log
