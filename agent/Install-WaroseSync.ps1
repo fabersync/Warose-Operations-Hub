@@ -8,7 +8,7 @@
     powershell -ExecutionPolicy Bypass -File .\Install-WaroseSync.ps1 `
       -ServerUrl "https://hub.warose.ro" -Token "wrs_..." `
       -Publine "D:\Exporturi Publine" `
-      [-EFactura "C:\SAGA C.3.0\e-Factura\DAVID_WAROSE_SRL" -EFacturaSince "2026-10-01"]
+      [-EFactura "C:\SAGA C.3.0\e-Factura\DAVID_WAROSE_SRL" -EFacturaSince "2026-01-01"]   (data facturii, din numele fișierului SAGA)
 
   Ce modifică pe calculator (și nimic altceva):
     - creează C:\ProgramData\WaroseSync (scriptul, configurația, coada, logurile), accesibil doar SYSTEM și Administratorilor;

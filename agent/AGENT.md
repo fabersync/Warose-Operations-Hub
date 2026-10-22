@@ -41,11 +41,12 @@ powershell -ExecutionPolicy Bypass -File .\Install-WaroseSync.ps1 -ServerUrl "ht
 Pe calculatorul cu SAGA (sursă e-Factura):
 
 ```
-powershell -ExecutionPolicy Bypass -File .\Install-WaroseSync.ps1 -ServerUrl "https://hub.warose.ro" -Token "wrs_..." -EFactura "C:\SAGA C.3.0\e-Factura\DAVID_WAROSE_SRL" -EFacturaSince "2026-10-01"
+powershell -ExecutionPolicy Bypass -File .\Install-WaroseSync.ps1 -ServerUrl "https://hub.warose.ro" -Token "wrs_..." -EFactura "C:\SAGA C.3.0\e-Factura\DAVID_WAROSE_SRL" -EFacturaSince "2026-01-01"
 ```
 
 - Cheia (`wrs_...`) se generează în aplicație: Setări → Agenți de sincronizare, câte una pentru fiecare calculator, pe locația lui.
-- `-EFacturaSince`: de la ce dată (a descărcării în SAGA) se preiau facturile. Pentru istoric, puneți o dată mai veche; toate intră „De verificat”.
+- `-EFacturaSince`: de la ce **dată a facturii** se preiau facturile (citită din numele fișierului SAGA, `F_<index>_<număr>_ZZ-LL-AAAA`; data salvării nu e folosită, pentru că un folder SAGA copiat are toate fișierele cu aceeași dată). Pentru istoric, reinstalați cu o dată mai veche: facturile deja trimise nu se dublează; toate cele noi intră „De verificat”.
+- Pe calculatorul SAGA de la brutărie se poate folosi direct `Instaleaza-PC-SAGA.cmd` (dublu-clic): cere permisiunea de administrator și cheia, restul e completat.
 - Instalarea modifică pe calculator doar trei lucruri: creează `C:\ProgramData\WaroseSync`, sursa „WaroseSync” în jurnalul de evenimente și sarcina programată „Warose Sync”.
 - Dezinstalare: `Uninstall-WaroseSync.ps1`.
 

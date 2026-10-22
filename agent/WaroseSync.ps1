@@ -185,9 +185,15 @@ try {
     if (-not (Test-Path -LiteralPath $folder)) { Write-Log "ERROR" "Folderul e-Factura nu există: $folder"; return @{ type = "efactura"; folder = $folder; ok = $false; message = "folder inexistent" } }
     $filter = "FacturiPrimite"; if ($src.SubfolderFilter) { $filter = [string]$src.SubfolderFilter }
     $since = [datetime]::MinValue; if ($src.SinceDate) { $since = [datetime]::ParseExact([string]$src.SinceDate, "yyyy-MM-dd", $null) }
+    # Data facturii din numele fișierului SAGA (F_<index>_<număr>_ZZ-LL-AAAA). Data salvării nu e de încredere:
+    # un folder SAGA copiat sau restaurat are toate fișierele cu aceeași dată recentă.
+    function Get-InvoiceDate([IO.FileInfo]$f) {
+      if ($f.BaseName -match '_(\d{2})-(\d{2})-(\d{4})$') { try { return [datetime]::new([int]$Matches[3], [int]$Matches[2], [int]$Matches[1]) } catch { } }
+      return $f.LastWriteTime
+    }
     # Doar facturile PRIMITE (subfolderul FacturiPrimite); facturile emise de firmă sunt ignorate.
     $files = Get-ChildItem -LiteralPath $folder -Recurse -File -ErrorAction SilentlyContinue |
-      Where-Object { ($_.Extension -ieq ".xml" -or $_.Extension -ieq ".zip") -and $_.DirectoryName -match [regex]::Escape("\$filter") -and $_.LastWriteTime -ge $since } |
+      Where-Object { ($_.Extension -ieq ".xml" -or $_.Extension -ieq ".zip") -and $_.DirectoryName -match [regex]::Escape("\$filter") -and (Get-InvoiceDate $_) -ge $since } |
       Sort-Object @{ Expression = { if ($_.Extension -ieq ".xml") { 0 } else { 1 } } }, LastWriteTime
     $new = 0; $ignored = 0; $waiting = 0
     foreach ($f in $files) {
