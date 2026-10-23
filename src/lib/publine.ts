@@ -1,5 +1,6 @@
 import "server-only";
 import * as XLSX from "xlsx";
+import { readBiff8 } from "./biff";
 
 /**
  * Parser pentru exportul Publine „Situație comenzi” (.xls / .xlsx / .csv).
@@ -60,10 +61,26 @@ const REQUIRED: ColKey[] = ["date", "name", "qty", "net", "vat", "gross"];
 
 const norm = (v: unknown) => String(v ?? "").trim().toLowerCase().replace(/\s+/g, " ");
 
+/**
+ * Exporturile .xls (BIFF8) se citesc cu cititorul propriu, care are nevoie de puțină memorie (un export pe
+ * 5 luni depășea cu SheetJS memoria serverului și îl oprea). .xlsx / .csv / alte formate: SheetJS, doar valori.
+ */
+function* readSheets(buffer: Buffer): Generator<{ rows: unknown[][] }> {
+  const biff = readBiff8(buffer);
+  if (biff) { for (const s of biff) yield s; return; }
+  const wb = XLSX.read(buffer, { type: "buffer", dense: true, cellDates: false, cellText: false, cellHTML: false, cellNF: false, cellStyles: false, cellFormula: false });
+  for (const name of wb.SheetNames) {
+    const rows = XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets[name], { header: 1, raw: true, defval: null, blankrows: false });
+    delete wb.Sheets[name];
+    yield { rows };
+  }
+}
+
 export function parsePublineSales(buffer: Buffer): ParseResult {
-  const wb = XLSX.read(buffer, { type: "buffer", cellDates: false, raw: false });
-  for (const sheetName of wb.SheetNames) {
-    const rows = XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets[sheetName], { header: 1, raw: true, defval: null });
+  const result: ParseResult = { lines: [], errors: [] };
+  let found = false;
+  // Toate foile cu antet: un export lung poate fi împărțit pe mai multe foi (.xls are maximum 65.536 de rânduri pe foaie).
+  for (const { rows } of readSheets(buffer)) {
     const headerIdx = rows.findIndex((r) => {
       const cells = (r ?? []).map(norm);
       return cells.includes("articol") && cells.includes("cantitate") && cells.includes("valoare");
@@ -77,8 +94,12 @@ export function parsePublineSales(buffer: Buffer): ParseResult {
     }
     const missing = REQUIRED.filter((k) => col[k] === undefined);
     if (missing.length) throw new Error(`Exportul nu conține coloanele obligatorii: ${missing.join(", ")}`);
-    return parseRows(rows, headerIdx, col);
+    const part = parseRows(rows, headerIdx, col);
+    for (const l of part.lines) result.lines.push(l);
+    for (const e of part.errors) result.errors.push(e);
+    found = true;
   }
+  if (found) return result;
   throw new Error("Fișierul nu pare a fi un export Publine „Situație comenzi” (nu am găsit antetul cu Articol / Cantitate / Valoare).");
 }
 

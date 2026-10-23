@@ -86,7 +86,28 @@ export async function retryBatch(batchId: number, userId: number): Promise<Impor
   return processBatch(batchId, buffer, b.default_location_id, userId, null);
 }
 
-async function processBatch(batchId: number, buffer: Buffer, defaultLocationId: number | null, userId: number | null, agentId: number | null): Promise<ImportResult> {
+/**
+ * Importurile rămase „în lucru” după o repornire a serverului devin eșuate, ca să nu blocheze fișierul:
+ * altfel o retrimitere a aceluiași fișier ar fi considerată duplicat. Se reiau din pagina Importuri.
+ */
+export async function failInterruptedImports(): Promise<number> {
+  const rows = await q(
+    `UPDATE import_batches SET status='failed', finished_at=now(),
+            error='Import întrerupt: serverul a repornit în timpul procesării. Apăsați „Reia”.'
+      WHERE status='processing' RETURNING id`,
+  );
+  return rows.length;
+}
+
+// Un singur export procesat odată: două exporturi mari în paralel ar dubla memoria folosită.
+let queue: Promise<unknown> = Promise.resolve();
+function processBatch(...args: Parameters<typeof processBatchNow>): Promise<ImportResult> {
+  const run = queue.then(() => processBatchNow(...args));
+  queue = run.catch(() => undefined);
+  return run;
+}
+
+async function processBatchNow(batchId: number, buffer: Buffer, defaultLocationId: number | null, userId: number | null, agentId: number | null): Promise<ImportResult> {
   try {
     const parsed = parsePublineSales(buffer);
     const result = await tx(async (tq) => {
