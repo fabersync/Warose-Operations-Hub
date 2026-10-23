@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { requireUser, canSeeLocation } from "@/lib/auth";
-import { ingestPublineSales, retryBatch, type ImportResult } from "@/lib/imports";
+import { ingestPublineSales, retryBatch, revertBatch, type ImportResult } from "@/lib/imports";
 
 export type UploadState = { results?: (ImportResult & { fileName: string })[]; error?: string };
 
@@ -18,6 +18,14 @@ export async function uploadPubline(_: UploadState, form: FormData): Promise<Upl
   }
   revalidatePath("/", "layout");
   return { results };
+}
+
+/** Doar administratorul: scoate din vânzări un import (ex. exporturi vechi încărcate din greșeală). */
+export async function revertImport(form: FormData) {
+  const user = await requireUser("imports");
+  if (user.role !== "admin") throw new Error("Doar administratorul poate anula un import.");
+  await revertBatch(Number(form.get("batch_id")), user.id);
+  revalidatePath("/", "layout");
 }
 
 export async function retryImport(form: FormData) {

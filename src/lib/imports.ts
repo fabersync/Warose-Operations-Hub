@@ -87,6 +87,37 @@ export async function retryBatch(batchId: number, userId: number): Promise<Impor
 }
 
 /**
+ * Anulează un import de vânzări Publine: liniile lui dispar din vânzări și rapoarte, iar mișcările de stoc
+ * pe care le-a generat sunt stornate (registrul de stoc nu se șterge). Fișierul original și istoricul rămân.
+ * Liniile pe care un alt import le-a ignorat ca duplicat al acestuia nu revin singure: acel export se reimportă.
+ */
+export async function revertBatch(batchId: number, userId: number): Promise<{ lines: number; net: number }> {
+  return tx(async (tq) => {
+    const b = (await tq<{ status: string; kind: string; file_name: string }>(
+      "SELECT status, kind, file_name FROM import_batches WHERE id=$1 FOR UPDATE", [batchId]))[0];
+    if (!b) throw new Error("Importul nu există.");
+    if (b.kind !== "sales_lines" || b.status !== "done") throw new Error("Doar importurile de vânzări finalizate pot fi anulate.");
+    await tq(
+      `INSERT INTO stock_movements (location_id, product_id, qty, kind, occurred_at, reverses_id, note, created_by)
+       SELECT m.location_id, m.product_id, -m.qty, 'reversal', m.occurred_at, m.id, 'Anulare import Publine #' || $1::int::text, $2
+         FROM stock_movements m
+        WHERE m.source_batch_id = $1::int AND NOT EXISTS (SELECT 1 FROM stock_movements r WHERE r.reverses_id = m.id)`,
+      [batchId, userId],
+    );
+    const del = await tq<{ net: string }>("DELETE FROM sales_lines WHERE batch_id=$1 RETURNING net", [batchId]);
+    const net = round2(del.reduce((s, r) => s + Number(r.net), 0));
+    await tq(
+      `UPDATE import_batches SET status='reverted', reverted_at=now(), reverted_by=$2,
+              error='Anulat: ' || $3::text || ' linii scoase din vânzări (' || $4::text || ' lei fără TVA).'
+        WHERE id=$1`,
+      [batchId, userId, String(del.length), net.toFixed(2)],
+    );
+    await audit({ userId, action: "import.revert", entity: "import_batch", entityId: batchId, details: { file: b.file_name, lines: del.length, net } });
+    return { lines: del.length, net };
+  });
+}
+
+/**
  * Importurile rămase „în lucru” după o repornire a serverului devin eșuate, ca să nu blocheze fișierul:
  * altfel o retrimitere a aceluiași fișier ar fi considerată duplicat. Se reiau din pagina Importuri.
  */

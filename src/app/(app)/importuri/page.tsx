@@ -1,4 +1,4 @@
-import { CheckCircle2, AlertTriangle, XCircle, Copy, Loader2 } from "lucide-react";
+import { CheckCircle2, AlertTriangle, XCircle, Copy, Loader2, Undo2 } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { q } from "@/lib/db";
 import { fmtDateTime, fmtLocalTs, fmtNum, fmtRon, relativeTime } from "@/lib/format";
@@ -6,6 +6,7 @@ import { locationsFor, syncStatus } from "@/lib/queries";
 import { Badge, Card, EmptyState, PageHeader } from "@/components/ui";
 import { UploadForm } from "./UploadForm";
 import { retryImport } from "./actions";
+import { RevertButton } from "./RevertButton";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Importuri" };
@@ -86,7 +87,7 @@ export default async function ImportsPage() {
                       <td>
                         <div className="max-w-[260px] truncate font-medium text-ink" title={b.file_name}>{b.file_name}</div>
                         <div className="text-xs text-muted">{fmtDateTime(b.created_at)}</div>
-                        {b.error && <div className="mt-1 max-w-[320px] text-xs text-bad">{b.error}</div>}
+                        {b.error && <div className={`mt-1 max-w-[320px] text-xs ${b.status === "reverted" || b.status === "duplicate" ? "text-muted" : "text-bad"}`}>{b.error}</div>}
                         {b.warnings?.map((w) => <div key={w} className="mt-1 max-w-[320px] text-xs text-warn">{w}</div>)}
                         {errs.length > 0 && (
                           <details className="mt-1 text-xs text-bad">
@@ -106,6 +107,7 @@ export default async function ImportsPage() {
                         {b.status === "failed" && (
                           <form action={retryImport}><input type="hidden" name="batch_id" value={b.id} /><button className="btn btn-ghost px-2.5 py-1 text-xs">Reia</button></form>
                         )}
+                        {b.status === "done" && user.role === "admin" && <RevertButton batchId={b.id} fileName={b.file_name} lines={b.rows_inserted} />}
                       </td>
                     </tr>
                   );
@@ -125,5 +127,6 @@ function StatusBadge({ status, reconciled }: { status: string; reconciled: boole
   if (status === "processing") return <Badge tone="info"><Loader2 className="size-3 animate-spin" />În lucru</Badge>;
   if (status === "failed") return <Badge tone="bad"><XCircle className="size-3" />Eșuat</Badge>;
   if (status === "duplicate") return <Badge><Copy className="size-3" />Duplicat blocat</Badge>;
+  if (status === "reverted") return <Badge><Undo2 className="size-3" />Anulat</Badge>;
   return reconciled ? <Badge tone="good"><CheckCircle2 className="size-3" />Reconciliat</Badge> : <Badge tone="warn"><AlertTriangle className="size-3" />De verificat</Badge>;
 }
