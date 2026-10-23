@@ -10,7 +10,7 @@ export interface SalesFilter {
 }
 
 /** Construiește WHERE-ul comun pentru vânzări, cu restricția de locație a utilizatorului. */
-function salesWhere(user: SessionUser, f: SalesFilter, alias = "s") {
+export function salesWhere(user: SessionUser, f: SalesFilter, alias = "s") {
   const params: unknown[] = [f.from, f.to];
   const parts = [`${alias}.sold_date BETWEEN $1::date AND $2::date`];
   if (user.locationIds !== null) {

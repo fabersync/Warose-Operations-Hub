@@ -19,24 +19,69 @@ export async function purchasingLocations(user: SessionUser) {
   return rows.filter((l) => user.locationIds === null || user.locationIds.includes(l.id));
 }
 
+export interface NeedRow {
+  location_id: number; location: string; product_id: number; product: string; unit: string;
+  stock: number; min_qty: number | null; target_qty: number | null; production_need: number; suggested: number;
+  supplier_id: number | null; supplier: string | null; last_price: number | null; preferred: boolean;
+}
+
 /**
- * Propunerile de comandă pentru o locație: produsele cu stoc sub minim (Stocuri minime),
- * cu cantitatea până la nivelul țintă și furnizorul obișnuit (ultimul de pe facturi).
+ * Necesarul de comandat pentru locațiile date:
+ *  - produsele sub stocul minim, până la nivelul țintă;
+ *  - materiile prime pentru planurile de producție neînregistrate din următoarele `days` zile (din rețete),
+ *    astfel încât după producție să rămână cel puțin stocul minim.
+ * Furnizorul: cel ales în Stocuri minime, altfel ultimul furnizor din facturi (cu prioritate furnizorii locației).
  */
-export async function suggestions(locationId: number) {
-  return q<{ product_id: number; product: string; unit: string; stock: number; min_qty: number; target_qty: number; suggested: number; supplier_id: number | null; supplier: string | null; last_price: number | null }>(
-    `SELECT p.id product_id, p.name product, p.unit,
-            coalesce(st.qty, 0)::float8 stock, t.min_qty::float8 min_qty, t.target_qty::float8 target_qty,
-            greatest(t.target_qty - coalesce(st.qty, 0), 0)::float8 suggested,
-            ls.supplier_id, s.name supplier, p.cost_price::float8 last_price
-       FROM stock_targets t
-       JOIN products p ON p.id = t.product_id
-       LEFT JOIN (SELECT product_id, sum(qty) qty FROM stock_movements WHERE location_id = $1 GROUP BY product_id) st ON st.product_id = p.id
-       LEFT JOIN LATERAL (SELECT supplier_id FROM price_history h WHERE h.product_id = p.id ORDER BY price_date DESC, id DESC LIMIT 1) ls ON true
-       LEFT JOIN suppliers s ON s.id = ls.supplier_id
-      WHERE t.location_id = $1 AND coalesce(st.qty, 0) < t.min_qty
-      ORDER BY s.name NULLS LAST, p.name`,
-    [locationId],
+export async function needs(locationIds: number[], days = 3): Promise<NeedRow[]> {
+  if (!locationIds.length) return [];
+  return q<NeedRow>(
+    `WITH st AS (SELECT location_id, product_id, sum(qty) qty FROM stock_movements WHERE location_id = ANY($1::int[]) GROUP BY 1, 2),
+          prod AS (
+            SELECT o.location_id, i.ingredient_id product_id, sum(i.qty * pl.planned_qty / r.yield_qty) need
+              FROM production_orders o JOIN production_lines pl ON pl.order_id = o.id
+              JOIN recipes r ON r.product_id = pl.product_id AND r.active JOIN recipe_items i ON i.recipe_id = r.id
+             WHERE o.status = 'planned' AND o.planned_for BETWEEN current_date AND current_date + $2::int AND o.location_id = ANY($1::int[])
+             GROUP BY 1, 2),
+          cand AS (SELECT location_id, product_id FROM stock_targets WHERE location_id = ANY($1::int[]) UNION SELECT location_id, product_id FROM prod),
+          calc AS (
+            SELECT c.location_id, c.product_id, coalesce(st.qty, 0) stock, t.min_qty, t.target_qty, coalesce(prod.need, 0) need, t.supplier_id,
+                   greatest(
+                     CASE WHEN t.product_id IS NOT NULL AND coalesce(st.qty, 0) < t.min_qty THEN t.target_qty - coalesce(st.qty, 0) ELSE 0 END,
+                     CASE WHEN coalesce(prod.need, 0) > 0 THEN prod.need + coalesce(t.min_qty, 0) - coalesce(st.qty, 0) ELSE 0 END,
+                     0) suggested
+              FROM cand c
+              LEFT JOIN st ON st.location_id = c.location_id AND st.product_id = c.product_id
+              LEFT JOIN stock_targets t ON t.location_id = c.location_id AND t.product_id = c.product_id
+              LEFT JOIN prod ON prod.location_id = c.location_id AND prod.product_id = c.product_id)
+     SELECT calc.location_id, l.name location, p.id product_id, p.name product, p.unit,
+            calc.stock::float8 stock, calc.min_qty::float8 min_qty, calc.target_qty::float8 target_qty, round(calc.need, 3)::float8 production_need,
+            (ceil(calc.suggested * 100) / 100)::float8 suggested,
+            sup.id supplier_id, sup.name supplier, p.cost_price::float8 last_price,
+            EXISTS (SELECT 1 FROM location_suppliers ls WHERE ls.location_id = calc.location_id AND ls.supplier_id = sup.id) preferred
+       FROM calc JOIN products p ON p.id = calc.product_id JOIN locations l ON l.id = calc.location_id
+       LEFT JOIN LATERAL (
+         SELECT s.id, s.name FROM suppliers s
+          WHERE s.id = coalesce(calc.supplier_id, (
+            SELECT h.supplier_id FROM price_history h WHERE h.product_id = p.id AND h.supplier_id IS NOT NULL
+             ORDER BY EXISTS (SELECT 1 FROM location_suppliers ls WHERE ls.location_id = calc.location_id AND ls.supplier_id = h.supplier_id) DESC,
+                      h.price_date DESC, h.id DESC LIMIT 1))) sup ON true
+      WHERE calc.suggested > 0
+      ORDER BY l.id, sup.name NULLS LAST, p.name`,
+    [locationIds, days],
+  );
+}
+
+/** Propunerile de comandă pentru o locație (folosite la „Creează comanda”). */
+export async function suggestions(locationId: number, days = 3) {
+  return needs([locationId], days);
+}
+
+/** Furnizorii obișnuiți ai locațiilor, pentru filtre și pentru lista din formularul de comandă. */
+export async function locationSuppliers(locationIds: number[]) {
+  return q<{ location_id: number; supplier_id: number; name: string; email: string | null; phone: string | null }>(
+    `SELECT ls.location_id, s.id supplier_id, s.name, s.email, s.phone FROM location_suppliers ls JOIN suppliers s ON s.id = ls.supplier_id
+      WHERE ls.location_id = ANY($1::int[]) ORDER BY s.name`,
+    [locationIds],
   );
 }
 

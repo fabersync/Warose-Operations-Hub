@@ -27,9 +27,11 @@ export async function updateProduct(form: FormData) {
   const isFrozen = form.get("is_frozen") === "on";
   const trackStock = form.get("track_stock") === "on";
   const unit = String(form.get("unit") ?? "").trim() || "buc";
+  // Produsele preparate în magazin scad ingredientele rețetei; nu pot avea și stoc propriu (s-ar scădea de două ori).
+  const recipeOnSale = form.get("consume_recipe_on_sale") === "on" && !trackStock;
   if (!id || !CATEGORIES.includes(category)) return;
-  await q("UPDATE products SET category=$2, is_frozen=$3, unit=$4, track_stock=$5 WHERE id=$1", [id, category, isFrozen, unit, trackStock]);
-  await audit({ userId: user.id, action: "product.update", entity: "product", entityId: id, details: { category, isFrozen, unit, trackStock } });
+  await q("UPDATE products SET category=$2, is_frozen=$3, unit=$4, track_stock=$5, consume_recipe_on_sale=$6 WHERE id=$1", [id, category, isFrozen, unit, trackStock, recipeOnSale]);
+  await audit({ userId: user.id, action: "product.update", entity: "product", entityId: id, details: { category, isFrozen, unit, trackStock, recipeOnSale } });
   revalidatePath("/produse");
 }
 

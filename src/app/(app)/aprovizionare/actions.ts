@@ -148,6 +148,18 @@ export async function createSupplier(_: FormState, form: FormData): Promise<Form
   });
 }
 
+/** Furnizorii obișnuiți ai unei locații (apar primii la comenzi și în necesar). */
+export async function setLocationSupplier(form: FormData) {
+  const user = await requireUser("purchasing");
+  const locationId = Number(form.get("location_id"));
+  const supplierId = Number(form.get("supplier_id"));
+  if (!supplierId || !canPurchase(user, locationId)) return;
+  if (form.get("op") === "remove") await q("DELETE FROM location_suppliers WHERE location_id=$1 AND supplier_id=$2", [locationId, supplierId]);
+  else await q("INSERT INTO location_suppliers (location_id, supplier_id) VALUES ($1,$2) ON CONFLICT DO NOTHING", [locationId, supplierId]);
+  await audit({ userId: user.id, action: `location_supplier.${form.get("op") === "remove" ? "remove" : "add"}`, entity: "location", entityId: locationId, details: { supplierId } });
+  revalidatePath("/aprovizionare", "layout");
+}
+
 /** Stocurile minime și țintă ale unei locații: sub minim, produsul apare în propunerile de comandă. */
 export async function saveTargets(_: FormState, form: FormData): Promise<FormState> {
   return run(async (user) => {
@@ -156,16 +168,17 @@ export async function saveTargets(_: FormState, form: FormData): Promise<FormSta
     const ids = form.getAll("product_id").map(Number);
     const mins = form.getAll("min_qty").map(numv);
     const targets = form.getAll("target_qty").map(numv);
+    const sups = form.getAll("supplier_id").map((v) => Number(v) || null);
     let saved = 0;
     await tx(async (tq) => {
       for (const [i, pid] of ids.entries()) {
-        const min = mins[i], target = targets[i];
-        if (min == null && target == null) { await tq("DELETE FROM stock_targets WHERE location_id=$1 AND product_id=$2", [locationId, pid]); continue; }
+        const min = mins[i], target = targets[i], sup = sups[i] ?? null;
+        if (min == null && target == null && !sup) { await tq("DELETE FROM stock_targets WHERE location_id=$1 AND product_id=$2", [locationId, pid]); continue; }
         if ([min, target].some((v) => v != null && (!Number.isFinite(v) || v < 0))) throw new Error("Valorile trebuie să fie pozitive.");
-        const t = target ?? min!; const m = min ?? 0;
+        const t = target ?? min ?? 0; const m = min ?? 0;
         if (t < m) throw new Error("Stocul țintă trebuie să fie cel puțin cât minimul.");
-        await tq(`INSERT INTO stock_targets (location_id, product_id, min_qty, target_qty) VALUES ($1,$2,$3,$4)
-                  ON CONFLICT (location_id, product_id) DO UPDATE SET min_qty=$3, target_qty=$4`, [locationId, pid, m, t]);
+        await tq(`INSERT INTO stock_targets (location_id, product_id, min_qty, target_qty, supplier_id) VALUES ($1,$2,$3,$4,$5)
+                  ON CONFLICT (location_id, product_id) DO UPDATE SET min_qty=$3, target_qty=$4, supplier_id=$5`, [locationId, pid, m, t, sup]);
         saved++;
       }
       await audit({ userId: user.id, action: "stock_targets.save", entity: "location", entityId: locationId, details: { saved } }, tq);

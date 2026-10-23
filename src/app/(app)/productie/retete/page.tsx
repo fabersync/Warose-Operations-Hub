@@ -13,13 +13,17 @@ export const metadata = { title: "Rețete" };
 export default async function RecipesPage() {
   const user = await requireUser("production");
   const edit = canEditProduction(user);
-  const [recipes, raw] = await Promise.all([
+  const [recipes, raw, sellable] = await Promise.all([
     recipeList(),
     q<{ id: number; name: string; unit: string; cost_price: number | null; cost_updated_at: string | null; used_in: number; track_stock: boolean }>(
       `SELECT p.id, p.name, p.unit, p.cost_price::float8 cost_price, p.cost_updated_at, p.track_stock,
               (SELECT count(DISTINCT r.product_id)::int FROM recipe_items i JOIN recipes r ON r.id = i.recipe_id AND r.active WHERE i.ingredient_id = p.id) used_in
          FROM products p WHERE p.active AND p.category IN ('raw','packaging') ORDER BY p.name`,
     ),
+    // Produse fără rețetă care nu sunt „produs finit” (ex: cafea, sandvișuri preparate în magazin).
+    q<{ id: number; name: string }>(
+      `SELECT id, name FROM products p WHERE active AND category NOT IN ('finished','raw','packaging','service')
+          AND NOT EXISTS (SELECT 1 FROM recipes r WHERE r.product_id = p.id AND r.active) ORDER BY name`),
   ]);
   const withRecipe = recipes.filter((r) => r.recipe_id);
   const without = recipes.filter((r) => !r.recipe_id);
@@ -29,6 +33,18 @@ export default async function RecipesPage() {
       <Notice title="Cost teoretic și marjă estimată">
         Costul provine din rețetă × prețul de achiziție al materiilor prime și nu include manopera, energia sau alte cheltuieli. Marja estimată compară acest cost cu prețul de vânzare fără TVA din Publine — nu reprezintă profitul real.
       </Notice>
+
+      {edit && sellable.length > 0 && (
+        <Card title="Rețetă pentru un produs preparat în magazin" subtitle="Ex: cafea, ciocolată caldă, sandvișuri. După salvarea rețetei, bifați „scade după rețetă” în Produse & coduri, iar vânzările vor scădea ingredientele din stoc.">
+          <form action="/productie/retete/alege" className="flex flex-wrap gap-2">
+            <select name="p" required defaultValue="" className="input min-w-0 flex-1" aria-label="Produs">
+              <option value="" disabled>Alegeți produsul…</option>
+              {sellable.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+            <button className="btn btn-ghost">Creează rețeta</button>
+          </form>
+        </Card>
+      )}
 
       <Card title="Rețete active" subtitle={`${withRecipe.length} produse cu rețetă · ${without.length} produse finite fără rețetă`} pad={false}>
         {recipes.length ? (

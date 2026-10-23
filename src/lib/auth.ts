@@ -31,6 +31,8 @@ export const MODULE_ACCESS: Record<string, Role[]> = {
   profitability: ["admin", "accounting"],
   imports: ["admin", "accounting"],
   products: ["admin", "production", "accounting"],
+  consumption: ["admin", "production", "location_manager", "staff", "accounting"],
+  exports: ["admin", "accounting", "location_manager"],
   settings: ["admin"],
   audit: ["admin"],
 };

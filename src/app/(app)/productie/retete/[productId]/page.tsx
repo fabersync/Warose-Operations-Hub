@@ -20,7 +20,7 @@ export default async function RecipePage({ params }: { params: Promise<{ product
     activeRecipe(productId),
     recipeHistory(productId),
     q<{ id: number; name: string; unit: string; cost_price: number | null }>(
-      "SELECT id, name, unit, cost_price::float8 cost_price FROM products WHERE active AND id <> $1 AND category IN ('raw','packaging','finished') ORDER BY category = 'finished', name",
+      "SELECT id, name, unit, cost_price::float8 cost_price FROM products WHERE active AND id <> $1 AND category IN ('raw','packaging','finished','merchandise') ORDER BY category IN ('finished','merchandise'), name",
       [productId],
     ),
   ]);

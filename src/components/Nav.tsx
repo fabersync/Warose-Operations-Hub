@@ -4,11 +4,11 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
   LayoutDashboard, TrendingUp, Boxes, Snowflake, ClipboardCheck, ChefHat, Truck, Timer,
-  FileText, PieChart, UploadCloud, Tag, Settings, ScrollText, Menu, X, LogOut, FileBarChart, Bell, ShoppingCart,
+  FileText, PieChart, UploadCloud, Tag, Settings, ScrollText, Menu, X, LogOut, FileBarChart, Bell, ShoppingCart, Trash2, Coffee, Sheet,
 } from "lucide-react";
 import { Logo } from "./Logo";
 
-const ICONS = { LayoutDashboard, TrendingUp, Boxes, Snowflake, ClipboardCheck, ChefHat, Truck, Timer, FileText, PieChart, UploadCloud, Tag, Settings, ScrollText, FileBarChart, ShoppingCart };
+const ICONS = { LayoutDashboard, TrendingUp, Boxes, Snowflake, ClipboardCheck, ChefHat, Truck, Timer, FileText, PieChart, UploadCloud, Tag, Settings, ScrollText, FileBarChart, ShoppingCart, Trash2, Coffee, Sheet };
 export type NavItem = { href: string; label: string; icon: keyof typeof ICONS; stage?: string };
 export type NavGroup = { label: string; items: NavItem[] };
 

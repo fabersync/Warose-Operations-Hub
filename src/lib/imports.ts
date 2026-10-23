@@ -198,6 +198,21 @@ async function processBatchNow(batchId: number, buffer: Buffer, defaultLocationI
          RETURNING id`,
         [batchId],
       );
+      // Produsele preparate în magazin după rețetă (ex: cafea): se scad ingredientele cu stoc gestionat.
+      await tq(
+        `INSERT INTO stock_movements (location_id, product_id, qty, kind, occurred_at, source_batch_id, note)
+         SELECT s.location_id, i.ingredient_id, -round(sum(s.qty * i.qty / r.yield_qty), 3), 'sale', max(s.sold_at) AT TIME ZONE 'Europe/Bucharest', $1,
+                'Rețete vânzări Publine ' || to_char(s.sold_date, 'DD.MM.YYYY')
+           FROM sales_lines s
+           JOIN products p ON p.id = s.product_id AND p.consume_recipe_on_sale AND NOT p.track_stock
+           JOIN recipes r ON r.product_id = p.id AND r.active
+           JOIN recipe_items i ON i.recipe_id = r.id
+           JOIN products ip ON ip.id = i.ingredient_id AND ip.track_stock
+          WHERE s.batch_id = $1
+          GROUP BY s.location_id, i.ingredient_id, s.sold_date
+         HAVING round(sum(s.qty * i.qty / r.yield_qty), 3) <> 0`,
+        [batchId],
+      );
 
       for (const e of rowErrors) {
         await tq("INSERT INTO import_errors (batch_id, row_no, message, raw) VALUES ($1,$2,$3,$4::text::jsonb)", [batchId, e.rowNo, e.message, JSON.stringify(e.raw)]);

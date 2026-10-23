@@ -130,7 +130,7 @@ export function SupplierForm() {
   );
 }
 
-export function TargetsForm({ locationId, rows }: { locationId: number; rows: { id: number; name: string; unit: string; stock: number; min_qty: number | null; target_qty: number | null }[] }) {
+export function TargetsForm({ locationId, rows, suppliers }: { locationId: number; rows: { id: number; name: string; unit: string; stock: number; min_qty: number | null; target_qty: number | null; supplier_id: number | null }[]; suppliers: Opt[] }) {
   const [state, action, pending] = useActionState<FormState, FormData>(saveTargets, {});
   const [filter, setFilter] = useState("");
   return (
@@ -139,7 +139,7 @@ export function TargetsForm({ locationId, rows }: { locationId: number; rows: { 
       <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Caută produsul…" aria-label="Caută" className="input" />
       <div className="max-h-[560px] overflow-auto rounded-xl border border-line">
         <table className="table">
-          <thead className="sticky top-0 bg-surface"><tr><th>Produs</th><th className="num">Stoc acum</th><th className="num">Minim</th><th className="num">Țintă</th></tr></thead>
+          <thead className="sticky top-0 bg-surface"><tr><th>Produs</th><th className="num">Stoc acum</th><th className="num">Minim</th><th className="num">Țintă</th><th>Furnizor</th></tr></thead>
           <tbody>
             {rows.map((r) => (
               <tr key={r.id} className={filter && !r.name.toUpperCase().includes(filter.toUpperCase()) ? "hidden" : ""}>
@@ -147,12 +147,18 @@ export function TargetsForm({ locationId, rows }: { locationId: number; rows: { 
                 <td className={`num ${r.min_qty != null && r.stock < r.min_qty ? "text-bad" : ""}`}>{str(Math.round(r.stock * 1000) / 1000)} {r.unit}</td>
                 <td className="num"><input name="min_qty" defaultValue={str(r.min_qty)} inputMode="decimal" aria-label={`Minim ${r.name}`} className="input w-20 py-1 text-right" /></td>
                 <td className="num"><input name="target_qty" defaultValue={str(r.target_qty)} inputMode="decimal" aria-label={`Țintă ${r.name}`} className="input w-20 py-1 text-right" /></td>
+                <td>
+                  <select name="supplier_id" defaultValue={r.supplier_id ?? ""} aria-label={`Furnizor ${r.name}`} className="input w-44 py-1 text-xs">
+                    <option value="">automat (ultima factură)</option>
+                    {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <p className="text-xs text-muted">Lăsați gol pentru produsele care nu se urmăresc. Sub minim, produsul apare în propunerile de comandă, cu cantitatea până la țintă.</p>
+      <p className="text-xs text-muted">Lăsați gol pentru produsele care nu se urmăresc. Sub minim, produsul apare în necesarul de comandă, cu cantitatea până la țintă, la furnizorul ales (sau la ultimul furnizor din facturi).</p>
       <Msg state={state} />
       <button className="btn btn-primary" disabled={pending}>Salvează stocurile minime</button>
     </form>

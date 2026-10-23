@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { Plus, ShoppingCart, SlidersHorizontal } from "lucide-react";
+import { ClipboardList, Plus, ShoppingCart, SlidersHorizontal } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { fmtDate, fmtNum, fmtRon } from "@/lib/format";
-import { canPurchase, listPurchaseOrders, PO_STATUS, purchasingLocations, suggestions } from "@/lib/purchasing";
+import { canPurchase, listPurchaseOrders, locationSuppliers, PO_STATUS, purchasingLocations, suggestions } from "@/lib/purchasing";
 import { Badge, Card, EmptyState, PageHeader } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -16,14 +16,23 @@ export default async function PurchasingPage({ searchParams }: { searchParams: P
   const s = sp.s ?? "open";
   const locations = await purchasingLocations(user);
   const loc = locations.find((l) => l.id === Number(sp.loc)) ?? locations[0];
-  const [orders, sugg] = await Promise.all([listPurchaseOrders(user, s), loc ? suggestions(loc.id) : Promise.resolve([])]);
+  const [orders, sugg, sup] = await Promise.all([listPurchaseOrders(user, s), loc ? suggestions(loc.id) : Promise.resolve([]), loc ? locationSuppliers([loc.id]) : Promise.resolve([])]);
   const bySupplier = new Map<string, typeof sugg>();
   for (const x of sugg) { const k = x.supplier_id ? String(x.supplier_id) : "-"; bySupplier.set(k, [...(bySupplier.get(k) ?? []), x]); }
 
   return (
     <>
-      <PageHeader title="Comenzi furnizori" description="Comenzile de materii prime și marfă pentru Sibiu, Alba Iulia și BRUTĂRIE (Metro, distribuitori). Propunerile pornesc de la stocurile minime; stocul se actualizează la verificarea facturii."
-        actions={loc && canPurchase(user, loc.id) ? <Link href={`/aprovizionare/nou?loc=${loc.id}`} className="btn btn-primary"><Plus className="size-4" />Comandă nouă</Link> : undefined} />
+      <PageHeader title="Comenzi furnizori" description="Comenzile de materii prime și marfă pentru Sibiu, Alba Iulia și BRUTĂRIE. Necesarul pornește de la stocurile minime și de la producția planificată; stocul se actualizează la verificarea facturii."
+        actions={<>
+          <Link href={`/aprovizionare/necesar?loc=${loc?.id ?? ""}`} className="btn btn-accent"><ClipboardList className="size-4" />Necesar comenzi</Link>
+          {loc && canPurchase(user, loc.id) && <Link href={`/aprovizionare/nou?loc=${loc.id}`} className="btn btn-primary"><Plus className="size-4" />Comandă nouă</Link>}
+        </>} />
+      {sup.length > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-1.5 text-xs text-muted">
+          <span>Furnizorii locației {loc?.name}:</span>
+          {sup.map((x) => <Badge key={x.supplier_id} tone="accent">{x.name}</Badge>)}
+        </div>
+      )}
 
       <div className="mb-4 flex flex-wrap items-center gap-1.5">
         {locations.map((l) => (
@@ -55,7 +64,8 @@ export default async function PurchasingPage({ searchParams }: { searchParams: P
           ) : <EmptyState icon={<ShoppingCart className="size-5" />} title="Nicio comandă în această listă">Creați o comandă sau porniți de la propunerile din dreapta.</EmptyState>}
         </Card>
 
-        <Card title={`De comandat · ${loc?.name ?? ""}`} subtitle="Produse sub stocul minim, grupate pe furnizorul obișnuit">
+        <Card title={`De comandat · ${loc?.name ?? ""}`} subtitle="Sub stocul minim sau pentru producția din următoarele 3 zile, pe furnizor"
+          action={<Link href={`/aprovizionare/necesar?loc=${loc?.id ?? ""}`} className="text-xs font-medium text-crust">Necesar complet →</Link>}>
           {sugg.length ? (
             <div className="space-y-4">
               {[...bySupplier.entries()].map(([k, items]) => (
@@ -70,7 +80,7 @@ export default async function PurchasingPage({ searchParams }: { searchParams: P
                     {items.map((x) => (
                       <li key={x.product_id} className="flex justify-between gap-2">
                         <span className="min-w-0 truncate text-ink-2">{x.product}</span>
-                        <span className="shrink-0 tabular-nums text-xs"><span className="text-bad">{fmtNum(x.stock)}</span> / min {fmtNum(x.min_qty)} → <b>{fmtNum(x.suggested)} {x.unit}</b></span>
+                        <span className="shrink-0 tabular-nums text-xs"><span className="text-bad">{fmtNum(x.stock)}</span>{x.min_qty != null ? ` / min ${fmtNum(x.min_qty)}` : ""}{x.production_need ? ` · producție ${fmtNum(x.production_need)}` : ""} → <b>{fmtNum(x.suggested)} {x.unit}</b></span>
                       </li>
                     ))}
                   </ul>

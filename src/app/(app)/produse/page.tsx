@@ -16,8 +16,9 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
   await requireUser("products");
   const sp = await searchParams;
   const search = sp.q?.trim() ?? "";
-  const products = await q<{ id: number; name: string; unit: string; category: string; is_frozen: boolean; track_stock: boolean; sale_price: string | null; vat_rate: string | null; codes: { id: number; source: string; code: string; name_in_source: string }[] | null }>(
-    `SELECT p.id, p.name, p.unit, p.category, p.is_frozen, p.track_stock, p.sale_price, p.vat_rate,
+  const products = await q<{ id: number; name: string; unit: string; category: string; is_frozen: boolean; track_stock: boolean; consume_recipe_on_sale: boolean; has_recipe: boolean; sale_price: string | null; vat_rate: string | null; codes: { id: number; source: string; code: string; name_in_source: string }[] | null }>(
+    `SELECT p.id, p.name, p.unit, p.category, p.is_frozen, p.track_stock, p.consume_recipe_on_sale,
+            EXISTS (SELECT 1 FROM recipes r WHERE r.product_id = p.id AND r.active) has_recipe, p.sale_price, p.vat_rate,
             (SELECT json_agg(json_build_object('id', c.id, 'source', c.source, 'code', c.code, 'name_in_source', c.name_in_source) ORDER BY c.source, c.code)
                FROM product_codes c WHERE c.product_id = p.id) codes
        FROM products p WHERE ($1 = '' OR p.name ILIKE '%' || $1 || '%') ORDER BY p.name`,
@@ -29,7 +30,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
     <>
       <PageHeader
         title="Produse & coduri"
-        description="Catalogul unic al aplicației și asocierea cu codurile din Publine și SAGA C. Codurile Publine noi creează automat un produs, pe care îl puteți reasocia. La produsele cu „stoc gestionat”, vânzările importate de acum înainte scad automat din stocul locației."
+        description="Catalogul unic al aplicației și asocierea cu codurile din Publine și SAGA C. „Stoc gestionat”: vânzările importate de acum înainte scad produsul din stocul locației. „Scade după rețetă”: pentru produsele preparate în magazin (ex: cafea, sandvișuri), la vânzare se scad ingredientele din rețetă."
       />
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -68,6 +69,8 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
                           <input name="unit" defaultValue={p.unit} className="input w-16 py-1 text-xs" aria-label="Unitate de măsură" />
                           <label className="flex items-center gap-1 text-xs text-ink-2"><input type="checkbox" name="is_frozen" defaultChecked={p.is_frozen} className="accent-crust" />congelat</label>
                           <label className="flex items-center gap-1 text-xs text-ink-2" title="Vânzările Publine importate de acum înainte scad din stocul locației"><input type="checkbox" name="track_stock" defaultChecked={p.track_stock} className="accent-crust" />stoc gestionat</label>
+                          <label className={`flex items-center gap-1 text-xs ${p.has_recipe ? "text-ink-2" : "text-faint"}`} title={p.has_recipe ? "Preparat în magazin: la vânzare (și la consum / pierderi) se scad din stoc ingredientele rețetei" : "Necesită o rețetă activă (Producție & rețete)"}>
+                            <input type="checkbox" name="consume_recipe_on_sale" defaultChecked={p.consume_recipe_on_sale} disabled={!p.has_recipe} className="accent-crust" />scade după rețetă</label>
                           <button className="btn btn-ghost px-2 py-1 text-xs">Salvează</button>
                         </form>
                       </td>

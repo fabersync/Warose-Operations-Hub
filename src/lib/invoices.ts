@@ -21,6 +21,13 @@ export async function findOrCreateSupplier(tq: Query, name: string, cif: string 
     ? (await tq<{ id: number }>("SELECT id FROM suppliers WHERE cif=$1", [c]))[0]
     : (await tq<{ id: number }>("SELECT id FROM suppliers WHERE cif IS NULL AND upper(name)=upper($1)", [name.trim()]))[0];
   if (existing) return existing.id;
+  // Un furnizor adăugat manual (fără CIF, ex. pentru comenzi) se completează cu CIF-ul la prima factură, ca să nu apară de două ori.
+  const key = name.toUpperCase().replace(/[^A-Z0-9]/g, "").replace(/(SRL|SA|SCS|SNC)$/, "");
+  if (c && key.length >= 4) {
+    const manual = (await tq<{ id: number }>(
+      `SELECT id FROM suppliers WHERE cif IS NULL AND $1 LIKE regexp_replace(upper(name), '[^A-Z0-9]', '', 'g') || '%' ORDER BY length(name) DESC LIMIT 1`, [key]))[0];
+    if (manual) { await tq("UPDATE suppliers SET cif=$2 WHERE id=$1", [manual.id, c]); return manual.id; }
+  }
   return (await tq<{ id: number }>("INSERT INTO suppliers (name, cif) VALUES ($1,$2) RETURNING id", [name.trim(), c]))[0].id;
 }
 

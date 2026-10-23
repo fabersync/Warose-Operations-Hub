@@ -14,6 +14,8 @@ const GROUPS: { label: string; items: Item[] }[] = [
   { label: "Operațiuni", items: [
     { href: "/stocuri", label: "Stocuri", icon: "Boxes", module: "stock" },
     { href: "/congelator", label: "Congelator", icon: "Snowflake", module: "freezer" },
+    { href: "/pierderi", label: "Pierderi", icon: "Trash2", module: "consumption" },
+    { href: "/consum", label: "Consum & protocol", icon: "Coffee", module: "consumption" },
     { href: "/inventar", label: "Inventar", icon: "ClipboardCheck", module: "inventory" },
     { href: "/productie", label: "Producție & rețete", icon: "ChefHat", module: "production" },
     { href: "/comenzi", label: "Comenzi & transferuri", icon: "Truck", module: "orders" },
