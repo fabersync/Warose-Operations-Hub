@@ -5,8 +5,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin", "latin-ext"], variable: "--font-inter", display: "swap" });
 
 export const metadata: Metadata = {
-  title: { default: "Warose Operations Hub", template: "%s · Warose Operations Hub" },
-  description: "Operațiunile Warose Bakery, centralizate.",
+  title: { default: "BakeryOps", template: "%s · BakeryOps" },
+  description: "Operațiunile brutăriei, centralizate.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

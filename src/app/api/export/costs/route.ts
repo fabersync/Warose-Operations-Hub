@@ -53,7 +53,7 @@ export async function GET(req: Request) {
   const subheader: (string | null)[] = [];
   locations.forEach((l) => {
     header.push(l.name, null, null, null, null, null, null, null);
-    subheader.push("David Warose SRL", "Data", "Tip Costuri", "RON", "EUR", "Furnizor", "Comentariu", null);
+    subheader.push(l.name, "Data", "Tip Costuri", "RON", "EUR", "Furnizor", "Comentariu", null);
   });
   aoa.push(header, subheader);
   const rows = Math.max(0, ...blocks.map((b) => b.length));

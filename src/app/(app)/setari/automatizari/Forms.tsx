@@ -42,10 +42,10 @@ export function WebhookForm({ url, secret }: { url: string; secret: string }) {
   return (
     <div className="space-y-3">
       <form onSubmit={submitKeep(action)} className="space-y-3">
-        <div className="field"><label className="label" htmlFor="wh_url">Adresa webhook (n8n / Make)</label><input id="wh_url" name="url" defaultValue={url} placeholder="https://n8n.exemplu.ro/webhook/warose" className="input" /></div>
+        <div className="field"><label className="label" htmlFor="wh_url">Adresa webhook (n8n / Make)</label><input id="wh_url" name="url" defaultValue={url} placeholder="https://n8n.exemplu.ro/webhook/bakeryops" className="input" /></div>
         {secret && (
           <div className="field">
-            <label className="label" htmlFor="wh_secret">Cheie de semnătură (HMAC-SHA256, antet X-Warose-Signature)</label>
+            <label className="label" htmlFor="wh_secret">Cheie de semnătură (HMAC-SHA256, antet X-BakeryOps-Signature)</label>
             <input id="wh_secret" readOnly value={secret} onFocus={(e) => e.currentTarget.select()} className="input font-mono text-xs" />
           </div>
         )}

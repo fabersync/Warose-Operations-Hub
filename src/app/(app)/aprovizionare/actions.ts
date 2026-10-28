@@ -84,9 +84,9 @@ export async function sendPurchaseOrder(_: FormState, form: FormData): Promise<F
       const o = (await getPurchaseOrder(user, id))!;
       if (!o.supplier_email) throw new Error("Furnizorul nu are adresă de email. Completați-o în fișa furnizorului de pe această pagină.");
       const rows = o.lines.map((l) => `<tr><td style="padding:6px;border-bottom:1px solid #eee">${esc(l.product)}</td><td style="padding:6px;border-bottom:1px solid #eee;text-align:right">${l.qty} ${esc(l.unit)}</td></tr>`).join("");
-      const html = emailLayout(`Comandă Warose Bakery nr. ${o.id}`, `Livrare la: ${o.location}${o.needed_for ? ` · data dorită: ${o.needed_for}` : ""}`,
+      const html = emailLayout(`Comandă nr. ${o.id}`, `Livrare la: ${o.location}${o.needed_for ? ` · data dorită: ${o.needed_for}` : ""}`,
         `<table style="width:100%;border-collapse:collapse">${rows}</table>${o.note ? `<p style="margin-top:12px;font-size:14px">${esc(o.note)}</p>` : ""}`);
-      const status = await sendEmail(o.supplier_email, `Comandă Warose Bakery nr. ${o.id} — ${o.location}`, html,
+      const status = await sendEmail(o.supplier_email, `Comandă nr. ${o.id} — ${o.location}`, html,
         o.lines.map((l) => `${l.product}: ${l.qty} ${l.unit}`).join("\n"));
       if (status.startsWith("error")) throw new Error(`Emailul nu a putut fi trimis: ${status}`);
       note = status === "sent" ? `Trimisă pe email la ${o.supplier_email}.` : "SMTP neconfigurat: emailul a fost doar salvat local (.data/outbox), NU a ajuns la furnizor.";

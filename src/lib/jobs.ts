@@ -45,7 +45,7 @@ export async function runAlerts(trigger: Trigger) {
       for (const r of await recipients(a.roles, a.locationId)) {
         let emailStatus: string | null = null;
         if (r.emailAlerts && severityAtLeast(a.severity, r.minSeverity)) {
-          emailStatus = await sendEmail(r.email, `[Warose] ${a.title}`,
+          emailStatus = await sendEmail(r.email, `[BakeryOps] ${a.title}`,
             emailLayout(a.title, a.detail ?? "", `<p style="margin:0;font-size:14px">${esc(a.detail ?? a.title)}</p>`, { label: "Deschide în aplicație", link: a.link }),
             `${a.title}\n${a.detail ?? ""}`);
           emails++;
@@ -81,7 +81,7 @@ export async function runDailyReport(trigger: Trigger, today = nowLocal().date) 
     const intro = `Vânzări nete ${new Intl.NumberFormat("ro-RO", { style: "currency", currency: "RON", maximumFractionDigits: 0 }).format(total)} · ${report.alerts.length} alerte active`;
     let sent = 0;
     for (const r of await recipients(["admin", "accounting", "location_manager", "production"], null)) {
-      const status = r.emailReports ? await sendEmail(r.email, `[Warose] ${title}`, emailLayout(title, intro, dailyEmailRows(report), { label: "Raportul complet", link }), `${title}\n${intro}`) : null;
+      const status = r.emailReports ? await sendEmail(r.email, `[BakeryOps] ${title}`, emailLayout(title, intro, dailyEmailRows(report), { label: "Raportul complet", link }), `${title}\n${intro}`) : null;
       if (status) sent++;
       await notifyUser(r.id, { kind: "report", severity: "info", title, body: intro, link, emailStatus: status });
     }
@@ -104,7 +104,7 @@ export async function runMonthlyReport(trigger: Trigger, month?: string) {
     const intro = "Vânzări, costuri și rezultat estimat pe locații. Exportul pentru planul de business este atașat în aplicație.";
     let sent = 0;
     for (const r of await recipients(["admin", "accounting"], null)) {
-      const status = r.emailReports ? await sendEmail(r.email, `[Warose] ${title}`, emailLayout(title, intro, monthlyEmailRows(report), { label: "Raportul complet", link }), `${title}\n${intro}`) : null;
+      const status = r.emailReports ? await sendEmail(r.email, `[BakeryOps] ${title}`, emailLayout(title, intro, monthlyEmailRows(report), { label: "Raportul complet", link }), `${title}\n${intro}`) : null;
       if (status) sent++;
       await notifyUser(r.id, { kind: "report", severity: "info", title, body: intro, link, emailStatus: status });
     }

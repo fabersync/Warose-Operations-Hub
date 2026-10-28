@@ -13,7 +13,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   const o = await getPurchaseOrder(user, Number((await params).id));
   if (!o) return new Response("Comanda nu există", { status: 404 });
   const ws = XLSX.utils.aoa_to_sheet([
-    [`Comandă Warose Bakery nr. ${o.id}`],
+    [`Comandă nr. ${o.id}`],
     [`Furnizor: ${o.supplier}${o.cif ? ` (CIF ${o.cif})` : ""}`],
     [`Livrare la: ${o.location}${o.needed_for ? ` · data dorită: ${o.needed_for}` : ""}`],
     [o.note ?? ""],

@@ -21,7 +21,7 @@ export default async function PrintPurchaseOrder({ params }: { params: Promise<{
         <PrintButton />
       </div>
       <article className="card p-8 print:border-0 print:p-0 print:shadow-none">
-        <div className="eyebrow">Warose Bakery · comandă către furnizor</div>
+        <div className="eyebrow">Comandă către furnizor</div>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">Comanda #{o.id} — {o.supplier}</h1>
         <p className="mt-1 text-sm text-muted">Livrare la {o.location}{o.needed_for && ` · ${fmtDate(o.needed_for)}`}{o.cif && ` · CIF furnizor ${o.cif}`}</p>
         <div className="mt-6 overflow-x-auto">

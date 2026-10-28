@@ -44,7 +44,7 @@ export const emailMode = () => (process.env.SMTP_URL ? "smtp" : "outbox");
 
 /** Trimite un email; returnează starea, pentru jurnal. Nu aruncă: o problemă de email nu oprește alertele. */
 export async function sendEmail(to: string, subject: string, html: string, text: string): Promise<string> {
-  const from = process.env.MAIL_FROM || "Warose Operations Hub <no-reply@localhost>";
+  const from = process.env.MAIL_FROM || "BakeryOps <no-reply@localhost>";
   try {
     const t = mailer();
     if (t) {
@@ -61,7 +61,7 @@ export async function sendEmail(to: string, subject: string, html: string, text:
   }
 }
 
-/** POST către webhook-ul configurat (n8n / Make), semnat HMAC-SHA256 în antetul X-Warose-Signature. */
+/** POST către webhook-ul configurat (n8n / Make), semnat HMAC-SHA256 în antetul X-BakeryOps-Signature. */
 export async function sendWebhook(event: string, payload: unknown): Promise<string> {
   const cfg = await getSetting<{ url: string; secret: string }>("webhook", { url: "", secret: "" });
   if (!cfg.url) return "not_configured";
@@ -70,7 +70,7 @@ export async function sendWebhook(event: string, payload: unknown): Promise<stri
   try {
     const res = await fetch(cfg.url, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "X-Warose-Event": event, "X-Warose-Signature": `sha256=${signature}` },
+      headers: { "Content-Type": "application/json", "X-BakeryOps-Event": event, "X-BakeryOps-Signature": `sha256=${signature}` },
       body,
       signal: AbortSignal.timeout(8000),
     });
@@ -97,7 +97,7 @@ const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
 export function emailLayout(title: string, intro: string, rowsHtml: string, cta?: { label: string; link: string }) {
   return `<!doctype html><html><body style="margin:0;background:#f6f5f2;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#1d1b18">
 <div style="max-width:640px;margin:0 auto;padding:28px 16px">
-  <div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#8a5a2e;font-weight:600">Warose Operations Hub</div>
+  <div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#8a5a2e;font-weight:600">BakeryOps</div>
   <h1 style="font-size:22px;margin:6px 0 4px">${esc(title)}</h1>
   <p style="margin:0 0 18px;color:#7c766d;font-size:14px">${esc(intro)}</p>
   <div style="background:#fff;border:1px solid #e8e5df;border-radius:12px;padding:18px">${rowsHtml}</div>

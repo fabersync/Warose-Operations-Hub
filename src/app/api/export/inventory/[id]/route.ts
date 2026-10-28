@@ -32,7 +32,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     [`Inventar #${count.id} — ${count.location}`],
     [`Data inventarului: ${asOf}`],
     [`Deschis de: ${count.started_by} · Închis de: ${count.closed_by ?? "—"}`],
-    ["Stoc scriptic = stoc operațional Warose Operations Hub (nu stocul contabil SAGA C)."],
+    ["Stoc scriptic = stoc operațional BakeryOps (nu stocul contabil SAGA C)."],
     [],
   ]);
   XLSX.utils.sheet_add_json(ws, rows, { origin: "A6" });

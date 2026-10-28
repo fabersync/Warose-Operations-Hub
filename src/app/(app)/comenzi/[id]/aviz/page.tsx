@@ -32,7 +32,7 @@ export default async function TransferDocPage({ params }: { params: Promise<{ id
       <article className="card p-8 print:border-0 print:p-0 print:shadow-none">
         <header className="flex flex-wrap items-start justify-between gap-4 border-b border-line pb-5">
           <div>
-            <div className="eyebrow">Warose Bakery · document intern</div>
+            <div className="eyebrow">Document intern</div>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight text-ink">Transfer între gestiuni</h1>
             <p className="mt-1 text-sm text-muted">Comanda #{o.id} · necesar pentru {fmtDate(o.needed_for)}</p>
           </div>

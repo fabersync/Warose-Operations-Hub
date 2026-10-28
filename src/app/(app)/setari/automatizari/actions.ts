@@ -44,7 +44,7 @@ export async function saveWebhook(_: FormState, form: FormData): Promise<FormSta
 
 export async function testWebhook(_: FormState): Promise<FormState> {
   await requireUser("settings");
-  const r = await sendWebhook("test", { message: "Test din Warose Operations Hub" });
+  const r = await sendWebhook("test", { message: "Test din BakeryOps" });
   return r === "ok" ? { ok: "Webhook-ul a răspuns cu succes." } : { error: `Webhook: ${r === "not_configured" ? "neconfigurat" : r}` };
 }
 

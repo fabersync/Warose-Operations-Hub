@@ -96,7 +96,7 @@ export async function GET(req: Request) {
   const cost = (loc: number | null, cat?: string) => sum(costs.filter((c) => !cat || c.category === cat), loc, (c) => c.amount, (c) => c.location_id);
   const categories = [...new Set(costs.map((c) => c.category))];
   const aoa: (string | number | null)[][] = [
-    [`Warose Bakery · ${from} – ${to}`, ...locations.map((l) => l.name), "Total"],
+    [`BakeryOps · ${from} – ${to}`, ...locations.map((l) => l.name), "Total"],
     ["Vânzări nete (fără TVA)", ...cols.map((c) => r2(sales(c, "net")))],
     ["TVA colectat", ...cols.map((c) => r2(sales(c, "vat")))],
     ["Vânzări cu TVA", ...cols.map((c) => r2(sales(c, "gross")))],
@@ -176,5 +176,5 @@ export async function GET(req: Request) {
 
   await audit({ userId: user.id, action: "export.complete", details: { from, to, locationId } });
   const locLabel = locationId ? locations.find((l) => l.id === locationId)?.name.replace(/[^\p{L}\p{N}]+/gu, "_") ?? "locatie" : "Toate";
-  return xlsxResponse(book(sheets), `Warose_${locLabel}_${from}_${to}.xlsx`);
+  return xlsxResponse(book(sheets), `BakeryOps_${locLabel}_${from}_${to}.xlsx`);
 }
